@@ -97,7 +97,8 @@ class Agent:
         #action = self._taskdef.PandaNullAct()
         self.action = self.null_act()
       elif whattodo[0] == AgentSide.WhatToDo.FINISH:
-        raise RuntimeError("Experiment finished")
+        print("Experiment finished")
+        #raise RuntimeError("Experiment finished")
       else:
         raise(ValueError("Unknown indicator data"))
 
@@ -113,13 +114,6 @@ class Agent:
   def null_act(self) -> np.array:
     return np.zeros(shape=self._spec.shape, dtype=self._spec.dtype)
 
-"""
-def goal_reward(observation: spec_utils.ObservationValue):
-  goal_distance = np.linalg.norm(goal_pos -
-                                 observation['panda_tcp_pos'])
-  return np.clip(1.0 - goal_distance, 0, 1)
-"""
-
 if __name__ == '__main__':
   # Initialize
   utils.init_logging()
@@ -129,11 +123,6 @@ if __name__ == '__main__':
   # Environment
   robot_params = params.RobotParams(robot_ip=args.robot_ip)
   panda_env = environment.PandaEnvironment(robot_params)
-
-  # Reward
-  """reward = rewards.ComputeReward(goal_reward)
-  panda_env.add_timestep_preprocessors([reward])"""
-
 
   with panda_env.build_task_environment() as env:
     # Print the full action, observation and reward specification

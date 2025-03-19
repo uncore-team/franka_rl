@@ -1,16 +1,16 @@
 import sys
 import os
-
 sys.path.append(os.path.abspath("../../"))
 
-
+from typing import Dict
+#import pickle
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
-# from stable_baselines3 import ...
+from stable_baselines3 import A2C
 
 from rl_spin_decoupler.spindecoupler import RLSide
-from typing import Dict
+
 
 class PandaEnv(gym.Env):
 
@@ -42,10 +42,15 @@ class PandaEnv(gym.Env):
         # Comunicación con panda_side.py
         #self._commstopanda = BaselinesSide(49054)
         self._commstopanda = RLSide(49054)
+
         self.target_position = None
+
+        self.max_steps = 100
+        self.steps = 0
 
 
     def step(self, action):
+        self.steps += 1
         # Transform the format of the action
         # action = self._taskdef.BaselinesActToComm(action)
         action = self.act_to_comm(action)
@@ -58,10 +63,11 @@ class PandaEnv(gym.Env):
         #print(observation)#
 
         # Calculate terminated and truncated
-        terminated, truncated = self.is_terminated_truncated(observation)
+        terminated = self.is_terminated(observation)
+        truncated = self.is_truncated(observation)
 
         # Calculate reward
-        #reward = self.reward(observation, terminated)
+        reward = self.reward(observation, terminated)
 
         # End of episode
         if terminated or truncated:
@@ -71,17 +77,24 @@ class PandaEnv(gym.Env):
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
+        self.steps = 0
+
         observation = self._commstopanda.resetGetObs()
         observation = self.comm_to_obs(observation)
 
         self.goal_pos = np.random.uniform(low=-10.0, high=10.0, size=(3,))  # Nueva posición aleatoria
         observation = np.concatenate([observation, self.goal_pos])
 
-        info = None
+        info = {}
         return observation, info
     
-    def is_terminated_truncated(self, observation):
-        return False, False
+    def is_terminated(self, observation):
+        return False
+    
+    def is_truncated(self, observation):
+        if self.steps >= self.max_steps:
+            return True
+        return False
     
     def reward(self, observation, terminated):
         goal_distance = np.linalg.norm(observation[0:2] - observation[3:5])
@@ -89,7 +102,7 @@ class PandaEnv(gym.Env):
 
     
     def get_info(self):
-        return None
+        return {}
     
     def act_to_comm(self, action) -> Dict:
         return {"action":action}
@@ -100,8 +113,12 @@ class PandaEnv(gym.Env):
 
 if __name__ == '__main__':
     env = PandaEnv()
-    # model = ...
+    model = A2C("MlpPolicy",env)
+    model.learn(total_timesteps=500)
+    model.save("reach.zip")
 
+
+    """
     observation, info = env.reset(seed=42)
     #print(observation)
     for _ in range(10000):
@@ -115,4 +132,4 @@ if __name__ == '__main__':
         # If the episode has ended then we can reset to start a new episode
         if terminated or truncated:
             observation, info = env.reset()
-    env.close()
+    env.close()"""
