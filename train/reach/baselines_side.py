@@ -7,7 +7,8 @@ from typing import Dict
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
-from stable_baselines3 import A2C
+from stable_baselines3 import A2C, SAC
+from stable_baselines3.common.callbacks import CheckpointCallback
 
 from rl_spin_decoupler.spindecoupler import RLSide
 
@@ -35,18 +36,29 @@ class PandaEnv(gym.Env):
         dtype=dtype('float32'), 
         name='panda_tcp_pos')
         """
+        """panda_force: Array(shape=(3,), dtype=dtype('float32'), name='panda_force')"""
         #self.observation_space = spaces.Box(low=-10, high=10, shape=(3,), dtype=np.float32)
-        # Es espacio de observaciones: 3 panda_tcp_pos + 3 goal_pose
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(6,), dtype=np.float32)
+        # Es espacio de observaciones: 3 panda_tcp_pos + 3 panda_force + 3 goal_pos 
+        #self.observation_space = spaces.Box(low=-10, high=10, shape=(9,), dtype=np.float32)
+
+        self.observation_space = spaces.Dict({
+            "pose": spaces.Box(low=np.array([0.1, -0.3, 0.1, -1, -1, -1, -1]), high=np.array([0.5, 0.3, 0.7, 1, 1, 1, 1]), shape=(7,), dtype=np.float32), 
+            "vel": spaces.Box(low=-1, high=1, shape=(6,), dtype=np.float32),
+            "force": spaces.Box(low=-100, high=100, shape=(3,), dtype=np.float32),   
+            "goal_pos": spaces.Box(low=np.array([0.1, -0.3, 0.1]), high=np.array([0.5, 0.3, 0.7]), shape=(3,), dtype=np.float32)
+        })
   
         # Comunicación con panda_side.py
         #self._commstopanda = BaselinesSide(49054)
         self._commstopanda = RLSide(49054)
 
-        self.target_position = None
+        self.goal_pos = None
 
-        self.max_steps = 100
+        self.max_steps = 250
         self.steps = 0
+
+        self.max_force = 40
+        self.min_dist = 0.2
 
 
     def step(self, action):
@@ -56,11 +68,9 @@ class PandaEnv(gym.Env):
         action = self.act_to_comm(action)
 
         # Send action to Panda and receive observation
-        #observation = self._commstopanda.stepGetObsSendAct(action)
         lat, observation, reward = self._commstopanda.stepSendActGetObs(action)
         observation = self.comm_to_obs(observation)
-        observation = np.concatenate([observation, self.goal_pos])
-        #print(observation)#
+        #print(observation)
 
         # Calculate terminated and truncated
         terminated = self.is_terminated(observation)
@@ -69,26 +79,33 @@ class PandaEnv(gym.Env):
         # Calculate reward
         reward = self.reward(observation, terminated)
 
-        # End of episode
-        if terminated or truncated:
-            self._commstopanda.stepExpFinished()
+        # End of learning
+        #if steps > learning_steps:
+        #    self._commstopanda.stepExpFinished()
 
         info = self.get_info()
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
         self.steps = 0
+        self.goal_pos = np.random.uniform(low=[0.1,-0.3,0.1], high=[0.5,0.3,0.7], size=(3,))  # Nueva posición aleatoria
 
         observation = self._commstopanda.resetGetObs()
         observation = self.comm_to_obs(observation)
 
-        self.goal_pos = np.random.uniform(low=-10.0, high=10.0, size=(3,))  # Nueva posición aleatoria
-        observation = np.concatenate([observation, self.goal_pos])
+        #observation = np.concatenate([observation, self.goal_pos])
 
         info = {}
         return observation, info
     
     def is_terminated(self, observation):
+        force = np.linalg.norm(observation["force"])
+        goal_distance = np.linalg.norm(observation["goal_pos"] - observation["pose"][0:3])
+        if force > self.max_force:
+            return True
+        if goal_distance < self.min_dist:
+            return True
         return False
     
     def is_truncated(self, observation):
@@ -97,8 +114,19 @@ class PandaEnv(gym.Env):
         return False
     
     def reward(self, observation, terminated):
-        goal_distance = np.linalg.norm(observation[0:2] - observation[3:5])
-        return np.clip(1.0 - goal_distance, 0, 1)
+        # Corregir por separado la posición y la orientación
+        goal_distance = np.linalg.norm(observation["goal_pos"] - observation["pose"][0:3]) # Distancia al objetivo
+        force = np.linalg.norm(observation["force"])
+        #vel = np.linalg.norm(observation["vel"][0:3])
+
+        if force > self.max_force:
+            return -100
+        if goal_distance < self.min_dist:
+            return 100
+        
+        reward = 100*(self.min_dist/goal_distance)-10   
+        reward = reward-0.1 # Penalización por tiempo   
+        return reward
 
     
     def get_info(self):
@@ -108,28 +136,29 @@ class PandaEnv(gym.Env):
         return {"action":action}
 
     def comm_to_obs(self, observation) -> Dict:
-        return observation["observation"]
+        
+        observation["goal_pos"]=self.goal_pos
+        #print(observation)
+        return observation#["observation"]
     
 
 if __name__ == '__main__':
     env = PandaEnv()
-    model = A2C("MlpPolicy",env)
-    model.learn(total_timesteps=500)
+    #model = A2C("MultiInputPolicy",env,learning_rate=1e-4,gamma=0.95,verbose=1,)
+    model = SAC("MultiInputPolicy", env, 
+                gamma=0.99, 
+                learning_rate=1e-4, 
+                buffer_size=20000, 
+                #batch_size=200, 
+                #tau=0.005, 
+                train_freq=(1, "episode"), 
+                verbose=1)
+    
+    checkpoint_callback = CheckpointCallback(
+        save_freq=1000,  # Guarda cada 5000 timesteps
+        save_path="./checkpoints_1/",  # Carpeta de guardado
+        name_prefix="reach")
+    model.learn(total_timesteps=40000,callback=checkpoint_callback)#40000
     model.save("reach.zip")
 
 
-    """
-    observation, info = env.reset(seed=42)
-    #print(observation)
-    for _ in range(10000):
-        action = env.action_space.sample()
-        #action, _state = model.predict(observation, deterministic=True)
-        #print(action)
-
-        observation, reward, terminated, truncated, info = env.step(action)
-        #print(observation)
-
-        # If the episode has ended then we can reset to start a new episode
-        if terminated or truncated:
-            observation, info = env.reset()
-    env.close()"""

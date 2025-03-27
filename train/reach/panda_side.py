@@ -9,9 +9,15 @@ from dm_env import specs
 from dm_robotics.agentflow import spec_utils
 from dm_robotics.agentflow.preprocessors import rewards, timestep_preprocessor
 
+from dm_robotics.geometry import pose_distribution
+
+from dm_robotics.moma import entity_initializer, prop
+
 from dm_robotics.panda import environment
 from dm_robotics.panda import parameters as params
 from dm_robotics.panda import run_loop, utils
+
+#from dm_robotics.moma.
 
 from rl_spin_decoupler.spindecoupler import AgentSide
 from rl_spin_decoupler.socketcomms.comms import BaseCommPoint
@@ -20,37 +26,28 @@ from typing import Dict
 import threading
 import time
 
-goal_pos = [0.4,0.1,0.4] # Definir aquí la posición objetivo
-
-
-
 
 class Agent:
-  """Reactive agent that follows a goal."""
 
-  def __init__(self, spec: specs.BoundedArray) -> None:
-    self._spec = spec
-    self._commstoRL = AgentSide(BaseCommPoint.get_ip(),49054)
+  def __init__(self, env) -> None:
+    self.env = env
+    self._spec = self.env.action_spec()
+    self._random_state = np.random.RandomState(42)
 
-    """# Frequencies of physical control and decision making
-    self._control_T = 1/20
-    self._rl_T = 1/10
-    if self._control_T >= self._rl_T:
-      raise(ValueError("RL timestep must be > control timestep"))
-    self._waitingforrlcommands = True
-    #self._lastaction = None
-		#self._lastactiont0 = 0.0"""
-
-    # THREADING TO RECEIVE INFO
     self.timestep = None
     self.observation = None
     self.actrec = None
     self.action = self.null_act()
+
+    self._commstoRL = AgentSide(BaseCommPoint.get_ip(),49054)
+    # THREADING TO RECEIVE INFO
     self.thread = threading.Thread(target=self.comms_thread)
     self.timestep_ready = threading.Event()
+    #self.lock = threading.Lock()
     self.thread.start()
 
   def step(self, timestep: dm_env.TimeStep) -> np.ndarray:
+    #with self.lock:
     self.timestep = timestep
     self.timestep_ready.set()
     return self.action
@@ -58,54 +55,56 @@ class Agent:
   def comms_thread(self):
     self.timestep_ready.wait()
     while True:
-      #self._commstobaselines.startComms()
       whattodo = self._commstoRL.readWhatToDo()
-      #print(whattodo)#
+      #print(whattodo)
 
-      if whattodo[0] == AgentSide.WhatToDo.REC_ACTION_SEND_OBS:
-        # GET OBSERVATION
-        #observation = self._taskdef.PandaObsToComm(timestep.observation,self._env)
-        self.observation = self.obs_to_comm(self.timestep)
+      if whattodo is not None:
+        if whattodo[0] == AgentSide.WhatToDo.REC_ACTION_SEND_OBS:
+          self.actrec = whattodo[1]
+          #print(actrec)
 
-        # SEND OBSERVATION AND RECEIVE ACTION
-        #self.actrec = self._commstoRL.sendObsRecAct(self.observation)
-        self._commstoRL.stepSendLastActDur(0)
-        self._commstoRL.stepSendObs(self.observation)
-        self.actrec = whattodo[1]
-        #print(actrec)
+          #with self.lock:
+          # CHANGE THE FORMAT OF THE ACTION
+          self.action = self.comm_to_act(self.actrec)
+          # GET OBSERVATION
+          self.observation = self.obs_to_comm(self.timestep)
 
-        # CHANGE THE FORMAT OF THE ACTION
-        #act = self._taskdef.PandaCommToAct(actrec)
-        self.action = self.comm_to_act(self.actrec)
-      elif whattodo[0] == AgentSide.WhatToDo.RESET_SEND_OBS:
-        # do reset the physics
-        finish = False
-        while not finish:
-          try:
-            # put the robot at a given pose instantaneously
-            finish = True
-          except ValueError as e: # may occur that the arm is initialized at a pose out of its workspace
-            print("\tInitializing error: {}. Repeating...".format(str(e)))
-        # GET OBSERVATION
-        #observation = self._taskdef.PandaObsToComm(timestep.observation,self._env) 
-        self.observation = self.obs_to_comm(self.timestep)
-        
-        # SEND OBSERVATION
-        self._commstoRL.resetSendObs(self.observation)
-        
-        # Null action
-        #action = self._taskdef.PandaNullAct()
-        self.action = self.null_act()
-      elif whattodo[0] == AgentSide.WhatToDo.FINISH:
-        print("Experiment finished")
-        #raise RuntimeError("Experiment finished")
-      else:
-        raise(ValueError("Unknown indicator data"))
+          # SEND OBSERVATION AND RECEIVE ACTION
+          self._commstoRL.stepSendLastActDur(0)
+          self._commstoRL.stepSendObs(self.observation)
+          
+        elif whattodo[0] == AgentSide.WhatToDo.RESET_SEND_OBS:
+          # do reset the physics
+          finish = False
+          while not finish:
+            try:
+              self.env.task.initialize_episode(self.env.physics,self._random_state) # put the robot at a given pose instantaneously
+              finish = True
+            except ValueError as e: # may occur that the arm is initialized at a pose out of its workspace
+              print("\tInitializing error: {}. Repeating...".format(str(e)))
+          
+          #with self.lock:
+          # Null action
+          self.action = self.null_act()
+          # GET OBSERVATION
+          self.observation = self.obs_to_comm(self.timestep)
 
-      #self._commstobaselines.stopComms()
+          print("Episode finished")
+          # SEND OBSERVATION
+          self._commstoRL.resetSendObs(self.observation)
+        elif whattodo[0] == AgentSide.WhatToDo.FINISH:
+          #print("Experiment finished")
+          raise RuntimeError("Experiment finished")
+        else:
+          raise(ValueError("Unknown indicator data"))
+
     
   def obs_to_comm(self, timestep) -> Dict:
-    return {"observation":timestep.observation["panda_tcp_pos"]} # Position x,y,z of end-effector
+    pose = timestep.observation["panda_tcp_pose"]
+    vel = timestep.observation["panda_tcp_vel_relative"]
+    force = timestep.observation["panda_force"]
+
+    return {"pose":pose, "force":force, "vel":vel} # Position x,y,z of end-effector
   
   def comm_to_act(self, actrec) -> np.array:
     #return actrec
@@ -113,6 +112,24 @@ class Agent:
 
   def null_act(self) -> np.array:
     return np.zeros(shape=self._spec.shape, dtype=self._spec.dtype)
+  
+
+
+def init_random(panda_env,robotname):
+	"""Randomly initializes the scenario (after creation)"""
+ 
+	# Uniform distribution of 6D poses within the given bounds.
+	gripper_pose_dist = pose_distribution.UniformPoseDistribution(
+		min_pose_bounds=np.array(    [0.5, -0.3, 0.7, .75 * np.pi, -.25 * np.pi,    -.25 * np.pi]),
+			max_pose_bounds=np.array([0.1, 0.3,  0.1, 1.25 * np.pi, .25 * np.pi / 2, .25 * np.pi]))
+
+	initialize_arm = entity_initializer.PoseInitializer(
+		panda_env.robots[robotname].position_gripper,
+		gripper_pose_dist.sample_pose)
+
+
+	panda_env.add_entity_initializers([initialize_arm])
+
 
 if __name__ == '__main__':
   # Initialize
@@ -121,19 +138,21 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   # Environment
-  robot_params = params.RobotParams(robot_ip=args.robot_ip)
+  robot_params = params.RobotParams(robot_ip=args.robot_ip,gripper=False)
   panda_env = environment.PandaEnvironment(robot_params)
+
+  init_random(panda_env,robot_params.name)
 
   with panda_env.build_task_environment() as env:
     # Print the full action, observation and reward specification
     #utils.full_spec(env)
 
     # Initialize the agent
-    agent = Agent(env.action_spec())
+    agent = Agent(env)
     
     # Run the environment and agent either in headless mode or inside the GUI.
     if args.gui:
       app = utils.ApplicationWithPlot()
       app.launch(env, policy=agent.step)
     else:
-      run_loop.run(env, agent, [], max_steps=100000, real_time=True)
+      run_loop.run(env, agent, [], max_steps=100000000, real_time=True)

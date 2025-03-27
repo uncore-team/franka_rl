@@ -1,9 +1,12 @@
 from baselines_side import PandaEnv
-from stable_baselines3 import A2C
+from stable_baselines3 import A2C, SAC
+import numpy as np
 
 if __name__ == '__main__':
     env = PandaEnv()
-    model = A2C.load("reach.zip")
+    env.max_steps = 200
+    #model = SAC.load("checkpoints/reach_1000_steps.zip")
+    model = SAC.load("checkpoints_1/reach_10000_steps.zip")
 
     observation, info = env.reset(seed=42)
     #print(observation)
@@ -17,5 +20,8 @@ if __name__ == '__main__':
 
         # If the episode has ended then we can reset to start a new episode
         if terminated or truncated:
+            dist = env.goal_pos-observation["pose"][0:3]
+            print(np.linalg.norm(dist))
             observation, info = env.reset()
+            print(env.goal_pos)
     env.close()
