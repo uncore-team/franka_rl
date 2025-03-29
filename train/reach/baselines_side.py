@@ -52,8 +52,6 @@ class PandaEnv(gym.Env):
         #self._commstopanda = BaselinesSide(49054)
         self._commstopanda = RLSide(49054)
 
-        self.goal_pos = None
-
         self.max_steps = 250
         self.steps = 0
 
@@ -89,12 +87,10 @@ class PandaEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self.steps = 0
-        self.goal_pos = np.random.uniform(low=[0.1,-0.3,0.1], high=[0.5,0.3,0.7], size=(3,))  # Nueva posición aleatoria
 
         observation = self._commstopanda.resetGetObs()
         observation = self.comm_to_obs(observation)
 
-        #observation = np.concatenate([observation, self.goal_pos])
 
         info = {}
         return observation, info
@@ -136,10 +132,7 @@ class PandaEnv(gym.Env):
         return {"action":action}
 
     def comm_to_obs(self, observation) -> Dict:
-        
-        observation["goal_pos"]=self.goal_pos
-        #print(observation)
-        return observation#["observation"]
+        return observation
     
 
 if __name__ == '__main__':
