@@ -25,6 +25,7 @@ from dm_robotics.panda import run_loop, utils
 from rl_spin_decoupler.spindecoupler import AgentSide
 from rl_spin_decoupler.socketcomms.comms import BaseCommPoint
 from typing import Dict
+from enum import Enum
 
 import threading
 import time
@@ -32,66 +33,67 @@ import time
 
 class Agent:
 
+  class StepState(Enum):
+    """
+    States of the agent when enters its step() method
+    """
+    READYFORRLCOMMAND = 0	# Ready for a new RL command
+    EXECUTINGLASTACTION = 1	# Executing the last action
+    AFTERRESET = 2	# After a previous (immediate) reset
+
   def __init__(self, env) -> None:
     self.env = env
     self._spec = self.env.action_spec()
     self._random_state = np.random.RandomState(42)
 
-    self.timestep = None
-    self.observation = None
-    self.actrec = None
-    self.action = self.null_act()
-
-    self.reset = False
-
     self._commstoRL = AgentSide(BaseCommPoint.get_ip(),49054)
-    # THREADING TO RECEIVE INFO
-    self.thread = threading.Thread(target=self.comms_thread)
-    self.timestep_ready = threading.Event()
-    #self.lock = threading.Lock()
-    self.thread.start()
+    
+    self._control_timestep = env.task.control_timestep
+    self._rltimestep = 0.1
+    if self._rltimestep <= self._control_timestep:
+      raise(ValueError("RL timestep must be > control timestep"))
+
+    self._stepstate = Agent.StepState.READYFORRLCOMMAND
+    self._lastaction = self.null_act()#None
+    self._lastactiont0 = 0.0
+    self._starttimecurepisode = 0.0
 
   def step(self, timestep: dm_env.TimeStep) -> np.ndarray:
-    #with self.lock:
-    self.timestep = timestep
-    self.timestep_ready.set()
-    if self.reset:
-      self.reset=False
-      finish = False
-      while not finish:
-        try:
-          # block step somehow???
-          self.env.task.initialize_episode(self.env.physics,self._random_state) # put the robot at a given pose instantaneously
-          finish = True
-        except ValueError as e: # may occur that the arm is initialized at a pose out of its workspace
-          print("\tInitializing error: {}. Repeating...".format(str(e)))
+    action = self._lastaction
+    curtime = self.env.physics.data.time # get agent current time
+
+    if self._stepstate == Agent.StepState.EXECUTINGLASTACTION: 
+      # --- not waiting new commands from RL, just executing last action
+      if (curtime - self._lastactiont0 >= self._rltimestep): 
+        # last action is finished by now
       
-    return self.action
-  
-  def comms_thread(self):
-    self.timestep_ready.wait()
-    while True:
+        observation = self.obs_to_comm(timestep) # gather observation
+        self._commstoRL.stepSendObs(observation,curtime) 
+        self._stepstate = Agent.StepState.READYFORRLCOMMAND
+
+    elif self._stepstate == Agent.StepState.READYFORRLCOMMAND: 
+      # --- waiting for new RL step() or reset() command from RL
+      
+      # read the last (pending) step()/reset() indicator 
       whattodo = self._commstoRL.readWhatToDo()
-      #print(whattodo)
 
-      if whattodo is not None:
-        if whattodo[0] == AgentSide.WhatToDo.REC_ACTION_SEND_OBS:
-          self.actrec = whattodo[1]
-          #print(actrec)
-
-          #with self.lock:
-          # CHANGE THE FORMAT OF THE ACTION
-          self.action = self.comm_to_act(self.actrec)
-          # GET OBSERVATION
-          self.observation = self.obs_to_comm(self.timestep)
-
-          # SEND OBSERVATION AND RECEIVE ACTION
-          self._commstoRL.stepSendLastActDur(0)
-          self._commstoRL.stepSendObs(self.observation)
+      if whattodo is not None: # otherwise, no command available yet
           
+        if whattodo[0] == AgentSide.WhatToDo.REC_ACTION_SEND_OBS:
+
+          actrec = whattodo[1]
+          action = self.comm_to_act(actrec)
+
+          lat = curtime - self._lastactiont0
+          self._lastactiont0 = curtime
+          self._commstoRL.stepSendLastActDur(lat)
+          self._stepstate = Agent.StepState.EXECUTINGLASTACTION 
+          # from now on, we are executing that action
+
         elif whattodo[0] == AgentSide.WhatToDo.RESET_SEND_OBS:
-          # do reset the physics
-          """finish = False
+
+          # do reset the agent scenario / episode
+          finish = False
           while not finish:
             try:
               # block step somehow???
@@ -99,36 +101,53 @@ class Agent:
               finish = True
             except ValueError as e: # may occur that the arm is initialized at a pose out of its workspace
               print("\tInitializing error: {}. Repeating...".format(str(e)))
-          """
-          self.reset = True
-          
-          #with self.lock:
-          # Null action
-          self.action = self.null_act()
-          # GET OBSERVATION
-          self.observation = self.obs_to_comm(self.timestep)
 
-          print("Episode finished")
-          # SEND OBSERVATION
-          self._commstoRL.resetSendObs(self.observation)
+          action = self.null_act() # null action
+          self._starttimecurepisode = curtime
+          self._stepstate = Agent.StepState.AFTERRESET 
+          # prepare to send an observation right after this
+
         elif whattodo[0] == AgentSide.WhatToDo.FINISH:
-          #print("Experiment finished")
+        
           raise RuntimeError("Experiment finished")
+          
         else:
           raise(ValueError("Unknown indicator data"))
 
-    
-  def obs_to_comm(self, timestep) -> Dict:
-    pose = timestep.observation["panda_tcp_pose"]
-    vel = timestep.observation["panda_tcp_vel_relative"]
-    force = timestep.observation["panda_force"]
-    #goal_pos = self.env.physics.named.data.xpos['unnamed_model/']
+    elif self._stepstate == Agent.StepState.AFTERRESET: 
+      # --- must send the pending observation after the last reset
 
-    return {"pose":pose, "force":force, "vel":vel, "goal_pos":[0,0,0]} # Position x,y,z of end-effector
+      observation = self.obs_to_comm(timestep) # gather observation
+      self._commstoRL.resetSendObs(observation,curtime)
+      self._stepstate = Agent.StepState.READYFORRLCOMMAND
+        
+    self._lastaction = action
+    return action	 # to be executed now by Panda
+  
+
+  def obs_to_comm(self, timestep) -> Dict:
+    goal_pos = self.env.physics.named.data.xpos['unnamed_model/']
+    #pose = timestep.observation["panda_tcp_pose"]
+    pos = timestep.observation["panda_tcp_pose"][0:3]
+    #rel_pos = goal_pos - pose[0:3]
+    rel_pos = goal_pos - pos
+    goal_dist = np.linalg.norm(rel_pos)
+    #vel = timestep.observation["panda_tcp_vel_relative"]
+    force = timestep.observation["panda_force"]
+    force_mag = np.linalg.norm(force)
+
+    #obs = {"pose":pose, "force":force, "vel":vel, "goal_pos":goal_pos}
+    obs = {#"pose": pose,
+           #"pos": pos,
+           "rel_pos": rel_pos,
+           "goal_dist": goal_dist,
+           "force_mag": force_mag}
+    return obs # Position x,y,z of end-effector
   
   def comm_to_act(self, actrec) -> np.array:
-    #return actrec
-    return actrec["action"]
+    act = self.null_act()
+    act[0:3] = actrec["action"]
+    return act
 
   def null_act(self) -> np.array:
     return np.zeros(shape=self._spec.shape, dtype=self._spec.dtype)
@@ -156,7 +175,7 @@ def init_random(panda_env,robotname,props):
 
   gripper_pose_dist = pose_distribution.UniformPoseDistribution(
     min_pose_bounds=np.array([0.5, -0.3, 0.7, .75 * np.pi, -.25 * np.pi,    -.25 * np.pi]),
-    max_pose_bounds=np.array([0.1, 0.3,  0.1, 1.25 * np.pi, .25 * np.pi / 2, .25 * np.pi]))
+    max_pose_bounds=np.array([0.2, 0.3,  0.1, 1.25 * np.pi, .25 * np.pi / 2, .25 * np.pi]))
 
   initialize_arm = entity_initializer.PoseInitializer(
     panda_env.robots[robotname].position_gripper,
@@ -203,4 +222,4 @@ if __name__ == '__main__':
       app = utils.ApplicationWithPlot()
       app.launch(env, policy=agent.step)
     else:
-      run_loop.run(env, agent, [], max_steps=100000, real_time=True)
+      run_loop.run(env, agent, [], max_steps=100000000, real_time=True)

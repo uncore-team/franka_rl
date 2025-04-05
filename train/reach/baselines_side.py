@@ -21,42 +21,27 @@ class PandaEnv(gym.Env):
     def __init__(self):
         super().__init__()
 
-        """
-        Action spec: BoundedArray(shape=(6,), 
-        dtype=dtype('float32'), 
-        name='panda_twist0\tpanda_twist1\tpanda_twist2\tpanda_twist3\tpanda_twist4\tpanda_twist5', 
-        minimum=[-0.5 -0.5 -0.5 -0.5 -0.5 -0.5], 
-        maximum=[0.5 0.5 0.5 0.5 0.5 0.5])
-        """
-        # El espacio de acciones: vector de 7 float32 [-0.5,0.5]
-        self.action_space = spaces.Box(low=-0.5, high=0.5, shape=(7,), dtype=np.float32)
-        """
-        Observation spec:
-        panda_tcp_pos: Array(shape=(3,), 
-        dtype=dtype('float32'), 
-        name='panda_tcp_pos')
-        """
-        """panda_force: Array(shape=(3,), dtype=dtype('float32'), name='panda_force')"""
-        #self.observation_space = spaces.Box(low=-10, high=10, shape=(3,), dtype=np.float32)
-        # Es espacio de observaciones: 3 panda_tcp_pos + 3 panda_force + 3 goal_pos 
-        #self.observation_space = spaces.Box(low=-10, high=10, shape=(9,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-0.5, high=0.5, shape=(3,), dtype=np.float32)
 
         self.observation_space = spaces.Dict({
-            "pose": spaces.Box(low=np.array([0.1, -0.3, 0.1, -1, -1, -1, -1]), high=np.array([0.5, 0.3, 0.7, 1, 1, 1, 1]), shape=(7,), dtype=np.float32), 
-            "vel": spaces.Box(low=-1, high=1, shape=(6,), dtype=np.float32),
-            "force": spaces.Box(low=-100, high=100, shape=(3,), dtype=np.float32),   
-            "goal_pos": spaces.Box(low=np.array([0.1, -0.3, 0.1]), high=np.array([0.5, 0.3, 0.7]), shape=(3,), dtype=np.float32)
-        })
+            #"pos": spaces.Box(low=-1.5, high=1.5, shape=(3,), dtype=float), 
+            "rel_pos": spaces.Box(-1.5,+1.5, shape=(3,), dtype=float),
+            "goal_dist": spaces.Box(low=0, high=3, shape=(1,), dtype=float),
+            "force_mag": spaces.Box(low=0, high=100.0, shape=(1,), dtype=float)   
+            })
   
         # Comunicación con panda_side.py
-        #self._commstopanda = BaselinesSide(49054)
         self._commstopanda = RLSide(49054)
 
-        self.max_steps = 250
+        self.max_steps = 300
         self.steps = 0
 
         self.max_force = 40
+        #self.max_force2 = self.max_force/2
+
         self.min_dist = 0.2
+        #self.min_dist3 = self.min_dist*3
+        #self.last_dist = None
 
 
     def step(self, action):
@@ -66,7 +51,7 @@ class PandaEnv(gym.Env):
         action = self.act_to_comm(action)
 
         # Send action to Panda and receive observation
-        lat, observation, reward = self._commstopanda.stepSendActGetObs(action)
+        lat, observation, reward, agenttime = self._commstopanda.stepSendActGetObs(action)
         observation = self.comm_to_obs(observation)
         #print(observation)
 
@@ -75,7 +60,7 @@ class PandaEnv(gym.Env):
         truncated = self.is_truncated(observation)
 
         # Calculate reward
-        reward = self.reward(observation, terminated)
+        reward = self.reward(observation, terminated, truncated)
 
         # End of learning
         #if steps > learning_steps:
@@ -87,20 +72,21 @@ class PandaEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self.steps = 0
+        self.last_dist = None
 
         observation = self._commstopanda.resetGetObs()
         observation = self.comm_to_obs(observation)
 
-
         info = {}
-        return observation, info
+        #print(observation[0])
+        return observation[0], info
     
     def is_terminated(self, observation):
-        force = np.linalg.norm(observation["force"])
-        goal_distance = np.linalg.norm(observation["goal_pos"] - observation["pose"][0:3])
-        if force > self.max_force:
+        #force = np.linalg.norm(observation["force"])
+        #goal_distance = np.linalg.norm(observation["goal_pos"] - observation["pose"][0:3])
+        if observation["force_mag"] > self.max_force:
             return True
-        if goal_distance < self.min_dist:
+        if observation["goal_dist"] < self.min_dist:
             return True
         return False
     
@@ -109,20 +95,37 @@ class PandaEnv(gym.Env):
             return True
         return False
     
-    def reward(self, observation, terminated):
-        # Corregir por separado la posición y la orientación
-        goal_distance = np.linalg.norm(observation["goal_pos"] - observation["pose"][0:3]) # Distancia al objetivo
-        force = np.linalg.norm(observation["force"])
-        #vel = np.linalg.norm(observation["vel"][0:3])
+    def reward(self, observation, terminated, truncated):
+        force_mag = observation["force_mag"]
+        goal_dist = observation["goal_dist"]
 
-        if force > self.max_force:
-            return -100
-        if goal_distance < self.min_dist:
-            return 100
-        
-        reward = 100*(self.min_dist/goal_distance)-10   
-        reward = reward-0.1 # Penalización por tiempo   
+        if force_mag > self.max_force: # and finished
+            reward = -100
+        elif goal_dist < self.min_dist: # and finished
+            reward = 100 * (self.min_dist - goal_dist)
+        elif truncated: # and truncated
+            reward = -500
+        else: # just one more step
+            reward = -goal_dist * 10 
         return reward
+    """reward = 0
+
+        if truncated:
+            return -10
+
+        if observation["force_mag"] > self.max_force2:
+            k = 10
+            reward = reward - min(k*(observation["force_mag"] - self.max_force2)/self.max_force2,k)
+
+        if self.last_dist!=None:
+            inc = observation["goal_dist"]-self.last_dist
+            if inc >= 0:
+                reward = reward -10*inc
+            else:
+                reward = reward +10*inc
+            
+        self.last_dist = observation["goal_dist"]
+        return reward"""
 
     
     def get_info(self):
@@ -137,21 +140,14 @@ class PandaEnv(gym.Env):
 
 if __name__ == '__main__':
     env = PandaEnv()
-    #model = A2C("MultiInputPolicy",env,learning_rate=1e-4,gamma=0.95,verbose=1,)
-    model = SAC("MultiInputPolicy", env, 
-                gamma=0.99, 
-                learning_rate=1e-4, 
-                buffer_size=20000, 
-                #batch_size=200, 
-                #tau=0.005, 
-                train_freq=(1, "episode"), 
-                verbose=1)
+    model = SAC("MultiInputPolicy", env, verbose=1)
+    #model = SAC.load("checkpoints_1/reach_18000_steps.zip",env)
     
     checkpoint_callback = CheckpointCallback(
-        save_freq=1000,  # Guarda cada 5000 timesteps
+        save_freq=2000,  # Guarda cada 5000 timesteps
         save_path="./checkpoints_1/",  # Carpeta de guardado
         name_prefix="reach")
-    model.learn(total_timesteps=40000,callback=checkpoint_callback)#40000
+    model.learn(total_timesteps=100000,callback=checkpoint_callback)#40000
     model.save("reach.zip")
 
 
