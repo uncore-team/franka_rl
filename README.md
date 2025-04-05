@@ -42,3 +42,7 @@ On terminal 1:
 On terminal 2:
 
     python panda_side.py --gui
+
+# Create your own training environment
+
+If you want to define your environment (observation and action spaces, reward...), you can do it in a file *task.py* by creating a child class from the template *Task*.
