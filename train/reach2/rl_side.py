@@ -10,7 +10,7 @@ from stable_baselines3 import A2C, SAC
 from stable_baselines3.common.callbacks import CheckpointCallback
 
 from rl_spin_decoupler.spindecoupler import RLSide
-from task import Task, TaskReach1
+from task import Task, TaskReach1, TaskReach2
 
 
 class PandaEnv(gym.Env):
@@ -75,7 +75,7 @@ class PandaEnv(gym.Env):
 
 
 if __name__ == '__main__':
-    task = TaskReach1(mode=TaskReach1.TaskMode.LEARN)
+    task = TaskReach2(mode=TaskReach2.TaskMode.LEARN)
     env = PandaEnv(task=task)
     model = SAC("MultiInputPolicy", env, verbose=1)
     #model = SAC.load("checkpoints_1/reach_18000_steps.zip",env)

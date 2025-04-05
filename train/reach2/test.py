@@ -1,10 +1,10 @@
 from rl_side import PandaEnv
 from stable_baselines3 import SAC
 import numpy as np
-from task import TaskReach1
+from task import TaskReach1, TaskReach2
 
 if __name__ == '__main__':
-    task = TaskReach1(mode=TaskReach1.TaskMode.TEST)
+    task = TaskReach2(mode=TaskReach2.TaskMode.TEST)
     env = PandaEnv(task=task)
     #model = SAC.load("checkpoints/reach_1000_steps.zip")
     model = SAC.load("reach.zip")

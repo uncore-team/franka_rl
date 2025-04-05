@@ -24,7 +24,7 @@ from rl_spin_decoupler.spindecoupler import AgentSide
 from rl_spin_decoupler.socketcomms.comms import BaseCommPoint
 from enum import Enum
 
-from task import Task, TaskReach1
+from task import Task, TaskReach1, TaskReach2
 
 class Agent():
 
@@ -184,7 +184,7 @@ if __name__ == '__main__':
     #utils.full_spec(env)
 
     # Initialize the agent
-    task = TaskReach1(mode=TaskReach1.TaskMode.TEST)
+    task = TaskReach2(mode=TaskReach2.TaskMode.TEST_GUI) # CHOOSE MODE LEARN/TEST/TEST_GUI
     agent = Agent(env, task=task)
     
     # Run the environment and agent either in headless mode or inside the GUI.
