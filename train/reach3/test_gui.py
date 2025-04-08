@@ -3,7 +3,7 @@ from stable_baselines3 import SAC
 import threading
 import tkinter as tk
 
-from task import TaskReach1, TaskReach2
+from task import TaskReach3
 
 class Gui():
     def __init__(self):
@@ -24,7 +24,7 @@ class Gui():
         self.label.pack()
         
         #self.update_values()
-        self.goal_pos = [0.6, 0, 0.5]
+        self.goal_pos = [0.5, 0, 0.5]
 
         #self.root.mainloop()
 
@@ -39,7 +39,7 @@ class Gui():
 
 
 def main():
-    task = TaskReach2(mode=TaskReach2.TaskMode.TEST_GUI)
+    task = TaskReach3(mode=TaskReach3.TaskMode.TEST_GUI)
     #task.max_steps = 100000000
     task.goal_pos = window.goal_pos
     env = PandaEnv(task=task)
@@ -47,7 +47,7 @@ def main():
     model = SAC.load("reach.zip")
 
     observation, info = env.reset(seed=42)
-    for _ in range(10000):
+    for _ in range(100000):
         task.goal_pos = window.goal_pos # nop
         #action = env.action_space.sample()
         action, _state = model.predict(observation, deterministic=True)
