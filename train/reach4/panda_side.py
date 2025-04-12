@@ -24,7 +24,7 @@ from rl_spin_decoupler.spindecoupler import AgentSide
 from rl_spin_decoupler.socketcomms.comms import BaseCommPoint
 from enum import Enum
 
-from task import Task, TaskReach1, TaskReach2
+from task import Task, TaskReach4
 
 class Agent():
 
@@ -113,50 +113,26 @@ class Agent():
 
     elif self._stepstate == Agent.StepState.AFTERRESET: 
       # --- must send the pending observation after the last reset
-
+      self.task.PandaReset()
       observation = self.task.PandaObservationToComm(timestep,self.env) # gather observation
       self._commstoRL.resetSendObs(observation,curtime)
       self._stepstate = Agent.StepState.READYFORRLCOMMAND
         
     self._lastaction = action
     return action	 # to be executed now by Panda
-   
 
-
-class Ball(prop.Prop):
-	"""Simple ball prop that consists of a MuJoco sphere geom."""
-
-	def _build(self, *args, **kwargs):
-		del args, kwargs
-		mjcf_root = mjcf.RootElement()
-		# Props need to contain a body called prop_root
-		body = mjcf_root.worldbody.add('body', name='prop_root')
-		body.add('geom',
-				 type='box', # a cube to reduce rolling
-				 size=[0.04, 0.04, 0.04],
-				 solref=[0.01, 0.5],
-				 mass=1,
-				 rgba=(1, 0, 0, 1))
-		super()._build('ball', mjcf_root)
-
-def init_random(panda_env,robotname,props):
+def init_random(panda_env,robotname):
   """Randomly initializes the scenario (after creation)"""
 
   gripper_pose_dist = pose_distribution.UniformPoseDistribution(
-    min_pose_bounds=np.array([0.5, -0.3, 0.7, .75 * np.pi, -.25 * np.pi,    -.25 * np.pi]),
-    max_pose_bounds=np.array([0.2, 0.3,  0.1, 1.25 * np.pi, .25 * np.pi / 2, .25 * np.pi]))
+    min_pose_bounds=np.array([0.5, -0.3, 0.7, np.pi, 0, 0]),
+    max_pose_bounds=np.array([0.2, 0.3,  0.3, np.pi, 0, 0]))
 
   initialize_arm = entity_initializer.PoseInitializer(
     panda_env.robots[robotname].position_gripper,
     gripper_pose_dist.sample_pose)
 
-  initialize_props = entity_initializer.prop_initializer.PropPlacer(
-    props,
-    position=distributions.Uniform(-.5, .5),
-    quaternion=rotations.UniformQuaternion())
-
-  panda_env.add_entity_initializers([initialize_arm, initialize_props])
-  
+  panda_env.add_entity_initializers([initialize_arm])
 
 if __name__ == '__main__':
   # Initialize
@@ -170,21 +146,14 @@ if __name__ == '__main__':
                                            control_timestep=0.05,
                                            physics_timestep=0.002)
 
-  # props
-  ball = Ball()
-  props = [ball]
-  panda_env.add_props(props)
-  #goal_sensor = prop_pose_sensor.PropPoseSensor(ball, 'goal')
-  #panda_env.add_extra_sensors([goal_sensor])
-
-  init_random(panda_env,robot_params.name,props)
+  init_random(panda_env,robot_params.name)
 
   with panda_env.build_task_environment() as env:
     # Print the full action, observation and reward specification
     #utils.full_spec(env)
 
     # Initialize the agent
-    task = TaskReach2(mode=TaskReach2.TaskMode.TEST) # CHOOSE MODE LEARN/TEST/TEST_GUI
+    task = TaskReach4(mode=TaskReach4.TaskMode.TEST_GUI) # CHOOSE MODE LEARN/TEST/TEST_GUI
     agent = Agent(env, task=task)
     
     # Run the environment and agent either in headless mode or inside the GUI.
