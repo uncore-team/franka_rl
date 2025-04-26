@@ -77,15 +77,15 @@ if __name__ == '__main__':
 
     env = PandaEnv(task=task)
 
-    log_path = "./logs/2"
+    log_path = "./logs/3"
     new_logger = configure(log_path, ["stdout", "csv", "tensorboard"])
-    model = SAC("MultiInputPolicy", env, verbose=1)
-    #model = SAC.load("checkpoints/5/reach_8000_steps.zip",env)
+    #model = SAC("MultiInputPolicy", env, verbose=1)
+    model = SAC.load("checkpoints/2/reach_100000_steps.zip",env)
     model.set_logger(new_logger)
     
     checkpoint_callback = CheckpointCallback(
         save_freq=2000, 
-        save_path="./checkpoints/2",
+        save_path="./checkpoints/3",
         name_prefix="reach")
     model.learn(total_timesteps=100000,callback=checkpoint_callback)
     model.save("reach.zip")
