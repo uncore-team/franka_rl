@@ -8,7 +8,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.logger import configure
 
 from rl_spin_decoupler.spindecoupler import RLSide
-from task import Task, TaskReach6_1, TaskReach6_2
+from CONFIG import *
 
 
 class PandaEnv(gym.Env):
@@ -26,12 +26,7 @@ class PandaEnv(gym.Env):
         self.observation_space = self.task.RLObservationSpace()
 
         # Comunicación con panda_side.py
-        self._commstopanda = RLSide(49054)
-
-        # CONSTANTS
-        #self.max_force2 = self.max_force/2
-        #self.min_dist3 = self.min_dist*3
-        #self.last_dist = None
+        self._commstopanda = RLSide(PORT)
 
 
     def step(self, action):
@@ -73,21 +68,21 @@ class PandaEnv(gym.Env):
 
 
 if __name__ == '__main__':
-    task = TaskReach6_2(mode=TaskReach6_2.TaskMode.LEARN)
+    task = TASK(mode=TASK.TaskMode.LEARN)
 
     env = PandaEnv(task=task)
 
-    log_path = "./logs/3"
+    log_path = LOG_PATH
     new_logger = configure(log_path, ["stdout", "csv", "tensorboard"])
-    #model = SAC("MultiInputPolicy", env, verbose=1)
-    model = SAC.load("checkpoints/2/reach_100000_steps.zip",env)
+    model = SAC("MultiInputPolicy", env, verbose=1)
+    #model = SAC.load(MODEL,env)
     model.set_logger(new_logger)
     
     checkpoint_callback = CheckpointCallback(
-        save_freq=2000, 
-        save_path="./checkpoints/3",
-        name_prefix="reach")
-    model.learn(total_timesteps=100000,callback=checkpoint_callback)
-    model.save("reach.zip")
+        save_freq=SAVE_FREQ, 
+        save_path=CHECKPOINTS_PATH,
+        name_prefix=NAME_PREFIX)
+    model.learn(total_timesteps=TOTAL_TIMESTEPS,callback=checkpoint_callback)
+    model.save(MODEL_NAME)
 
 

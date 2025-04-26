@@ -4,12 +4,12 @@ import threading
 import tkinter as tk
 from math import sqrt
 
-from task import TaskReach6_2
+from CONFIG import *
 
 class Gui():
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Sliders XYZ")
+        self.root.title("Position XYZ")
 
         self.max_radius = 0.7
 
@@ -93,18 +93,15 @@ class Gui():
 
 
 def main():
-    task = TaskReach6_2(mode=TaskReach6_2.TaskMode.TEST_GUI)
-    #task.max_steps = 100000000
+    task = TASK(mode=TASK.TaskMode.TEST_GUI)
     task.goal_pos = window.goal_pos
     env = PandaEnv(task=task)
     
-    #model = SAC.load("checkpoints/1/reach_38000_steps.zip")
-    model = SAC.load("reach.zip")
+    model = SAC.load(MODEL, env)
 
     observation, info = env.reset(seed=42)
     for _ in range(100000):
-        task.goal_pos = window.goal_pos # nop
-        #action = env.action_space.sample()
+        task.goal_pos = window.goal_pos 
         action, _state = model.predict(observation, deterministic=True)
         #print(action)
 

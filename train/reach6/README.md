@@ -1,6 +1,17 @@
 # reach6
 
-The goal of this model is to control the position AND THE ORIENTATION of the end-effector. The GUI has been updated to a cylindrical input so as to avoid setting as a goal a corner that is out of the robots working space.
+* The goal of this model is to control the position AND THE ORIENTATION of the end-effector. 
+
+* The GUI has been updated to a cylindrical input so as to avoid setting as a goal a corner that is out of the robots working space.
+
+* CONFIG.py file is where the user can define the environment parameters so as to avoid entering any file other from task.py.
+
+--- 
+
+* Make run file
+
+* The GUI should include information about the error vector of the pose
+
 
 Action has seven dimensions (joints)
 The goal orientation is always the same, vertical (pi,0,0) -> 

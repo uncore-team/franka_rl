@@ -25,7 +25,7 @@ from rl_spin_decoupler.spindecoupler import AgentSide
 from rl_spin_decoupler.socketcomms.comms import BaseCommPoint
 from enum import Enum
 
-from task import Task, TaskReach6_1, TaskReach6_2
+from CONFIG import *
 
 class Agent():
 
@@ -44,7 +44,7 @@ class Agent():
 
     self.task = task
 
-    self._commstoRL = AgentSide(BaseCommPoint.get_ip(),49054)
+    self._commstoRL = AgentSide(BaseCommPoint.get_ip(),PORT)
     
     self._control_timestep = env.task.control_timestep
     self._rltimestep = 0.1
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     #utils.full_spec(env)
 
     # Initialize the agent
-    task = TaskReach6_2(mode=TaskReach6_2.TaskMode.TEST_GUI) # CHOOSE MODE LEARN/TEST/TEST_GUI
+    task = TASK(mode=MODE)
     agent = Agent(env, task=task)
     
     # Run the environment and agent either in headless mode or inside the GUI.
