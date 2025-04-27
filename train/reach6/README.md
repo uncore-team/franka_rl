@@ -2,7 +2,7 @@
 
 * The goal of this model is to control the position AND THE ORIENTATION of the end-effector. 
 
-* The GUI has been updated to a cylindrical input so as to avoid setting as a goal a corner that is out of the robots working space.
+* The GUI has been updated to a cylindrical input so as to avoid setting as a goal a corner that is out of the robots working space. Switching from Tkinter to Pyside6 -> test_gui2.py. Threading + GUI + sockets == Python GIL problems. Use multiprocessing instead of threading -> test_gui3.py
 
 * CONFIG.py file is where the user can define the environment parameters so as to avoid entering any file other from task.py.
 

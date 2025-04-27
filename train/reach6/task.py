@@ -410,16 +410,17 @@ class TaskReach6_2(Task):
         return {"action":action}
     
     def RLCommToObservation(self,observation):
-        pass
+       return observation 
 
     def RLCommToObservationLearn(self,observation):
         return observation
 
     def RLCommToObservationTestGUI(self,observation):
-        diff = self.goal_pos - observation["pos"]
-
-        observation["rel_pos"] = [diff]
-        observation["goal_dist"] = [np.linalg.norm(diff)]
+        # Calculate the relative position based on the GUI position 
+        self.diff = self.goal_pos - observation["pos"]
+        
+        observation["rel_pos"] = [self.diff]
+        observation["goal_dist"] = [np.linalg.norm(self.diff)]
 
         observation.pop("pos")
         return observation
