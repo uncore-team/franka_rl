@@ -135,26 +135,26 @@ def init_random(panda_env,robotname):
 
   panda_env.add_entity_initializers([initialize_arm])
 
-if __name__ == '__main__':
-  # Initialize
-  utils.init_logging()
+if __name__ == '__main__':           
+  # Initialize                       
+  utils.init_logging()               
   parser = utils.default_arg_parser()
-  args = parser.parse_args()
-
-  # Environment
-  robot_params = params.RobotParams(robot_ip=args.robot_ip,gripper=False, actuation=arm_constants.Actuation.JOINT_VELOCITY) # actuation=arm_constants.Actuation.JOINT_VELOCITY
+  args = parser.parse_args()         
+                                     
+  # Environment                      
+  robot_params = params.RobotParams(robot_ip=args.robot_ip,has_hand=HAS_HAND, actuation=arm_constants.Actuation.JOINT_VELOCITY) # actuation=arm_constants.Actuation.JOINT_VELOCITY
   panda_env = environment.PandaEnvironment(robot_params,
                                            control_timestep=0.05,
                                            physics_timestep=0.002)
-
+                                     
   init_random(panda_env,robot_params.name)
-
+                                     
   with panda_env.build_task_environment() as env:
     # Print the full action, observation and reward specification
-    #utils.full_spec(env)
-
+    #utils.full_spec(env)            
+                                     
     # Initialize the agent
-    task = TASK(mode=MODE)
+    task = TASK(mode=MODE, has_hand=HAS_HAND)
     agent = Agent(env, task=task)
     
     # Run the environment and agent either in headless mode or inside the GUI.

@@ -64,8 +64,6 @@ class PandaEnv(gym.Env):
 
         info = {}
         return observation, info
-    
-
 
 if __name__ == '__main__':
     task = TASK(mode=TASK.TaskMode.LEARN)

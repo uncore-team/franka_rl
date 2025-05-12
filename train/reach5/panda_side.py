@@ -141,7 +141,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   # Environment
-  robot_params = params.RobotParams(robot_ip=args.robot_ip,gripper=False)
+  robot_params = params.RobotParams(robot_ip=args.robot_ip,has_hand=True)
   panda_env = environment.PandaEnvironment(robot_params,
                                            control_timestep=0.05,
                                            physics_timestep=0.002)

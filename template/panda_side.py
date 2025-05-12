@@ -137,7 +137,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   # Environment
-  robot_params = params.RobotParams(robot_ip=args.robot_ip,gripper=False, actuation=arm_constants.Actuation.JOINT_VELOCITY) # actuation=arm_constants.Actuation.JOINT_VELOCITY
+  robot_params = params.RobotParams(robot_ip=args.robot_ip,has_hand=HAS_HAND, actuation=arm_constants.Actuation.JOINT_VELOCITY) # actuation=arm_constants.Actuation.JOINT_VELOCITY
   panda_env = environment.PandaEnvironment(robot_params,
                                            control_timestep=0.05,
                                            physics_timestep=0.002)
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     #utils.full_spec(env)
 
     # Initialize the agent
-    task = TASK(mode=MODE)
+    task = TASK(mode=MODE, has_hand=HAS_HAND)
     agent = Agent(env, task=task)
     
     # Run the environment and agent either in headless mode or inside the GUI.
