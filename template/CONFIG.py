@@ -1,4 +1,4 @@
-from task import Task, TaskReach, TaskReach2, TaskReach4, TaskReach5_2, TaskReach6_3
+from task import Task, TaskReach, TaskReach2, TaskReach4, TaskReach5, TaskReach5_2, TaskReach6_3
 
 PORT = 49054 # 49054-65535 are free ports
 
