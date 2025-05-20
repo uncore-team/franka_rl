@@ -1,13 +1,13 @@
 from rl_side import PandaEnv
 from stable_baselines3 import SAC
 import numpy as np
-from task import TaskReach5
+from task import TaskReach5, TaskReach5_2
 
 if __name__ == '__main__':
-    task = TaskReach5(mode=TaskReach5.TaskMode.TEST)
+    task = TaskReach5_2(mode=TaskReach5_2.TaskMode.TEST)
     env = PandaEnv(task=task)
-    model = SAC.load("checkpoints/1/reach_38000_steps.zip")
-    #model = SAC.load("reach.zip")
+    #model = SAC.load("checkpoints/1/reach_38000_steps.zip")
+    model = SAC.load("reach5_2.zip")
 
     observation, info = env.reset(seed=42)
     #print(observation)

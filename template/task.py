@@ -329,7 +329,7 @@ class TaskReach(Task):
         ]
 
 
-class TaskReach2(Task):
+class TaskReach2(Task): # Can't use it here yet
 
     class TaskMode(Enum):
         LEARN = "learn"
@@ -429,10 +429,10 @@ class TaskReach2(Task):
         return observation
 
     def RLCommToObservationTestGUI(self,observation):
-        diff = self.goal_pos - observation["pos"]
+        self.diff = self.goal_pos - observation["pos"]
 
-        observation["rel_pos"] = [diff]
-        observation["goal_dist"] = [np.linalg.norm(diff)]
+        observation["rel_pos"] = [self.diff]
+        observation["goal_dist"] = [np.linalg.norm(self.diff)]
 
         observation.pop("pos")
         return observation
@@ -451,20 +451,21 @@ class TaskReach2(Task):
 
     # NULL ACTION FOR THE ROBOT
     def PandaNullAct(self):
-        return np.zeros((7,))
+        return np.zeros((8,))
     
     def PandaNullActHand(self):
-        return np.zeros((7,))
+        return np.zeros((8,))
     
     def PandaNullActNoHand(self):
-        return np.zeros((6,))
+        return np.zeros((7,))
 
     # TRANSLATION FOR COMMUNICATION VIA rl_spin_decoupler 
     def PandaObservationToComm(self, timestep, momaenv):
         pass
     
     def PandaObservationToCommLearn(self, timestep, momaenv):
-        goal_pos = momaenv.physics.named.data.xpos['unnamed_model/']
+        #goal_pos = momaenv.physics.named.data.xpos['unnamed_model/'] # Gets the position of the red cube
+        goal_pos = self.goal_pos
         pos = timestep.observation["panda_tcp_pose"][0:3]
         rel_pos = goal_pos - pos
         goal_dist = np.linalg.norm(rel_pos)
@@ -479,7 +480,8 @@ class TaskReach2(Task):
         return obs
 
     def PandaObservationToCommTestGUI(self, timestep, momaenv):
-        goal_pos = momaenv.physics.named.data.xpos['unnamed_model/']
+        #goal_pos = momaenv.physics.named.data.xpos['unnamed_model/'] # Gets the position of the red cube
+        goal_pos = self.goal_pos
         pos = timestep.observation["panda_tcp_pose"][0:3]
         rel_pos = goal_pos - pos
         goal_dist = np.linalg.norm(rel_pos)
@@ -499,8 +501,27 @@ class TaskReach2(Task):
         act[0:3] = actrec["action"]
         return act
     
+    def PandaReset(self):
+        self.goal_pos = self.PandaRandomGoalPos()
 
-class TaskReach4(Task):
+    def PandaRandomGoalPos(self):
+        # BOUNDS
+        r_bounds = (0.3,0.7)
+        z_bounds = (0.2,0.7)
+
+        # GET RANDOM POINT
+        r = random.uniform(*r_bounds)
+        z = random.uniform(*z_bounds)
+        theta = random.uniform(0,2*np.pi)
+
+        # COORDINATES TF
+        x = r*np.cos(theta)
+        y = r*np.sin(theta)
+
+        return [x,y,z]
+    
+
+class TaskReach4(Task): # Can't use it here yet
     """
     TaskReach2 with a different Reward function that counts the time that the end effector stays in the goal.
     Results: 
@@ -632,10 +653,10 @@ class TaskReach4(Task):
         return observation
 
     def RLCommToObservationTestGUI(self,observation):
-        diff = self.goal_pos - observation["pos"]
+        self.diff = self.goal_pos - observation["pos"]
 
-        observation["rel_pos"] = [diff]
-        observation["goal_dist"] = [np.linalg.norm(diff)]
+        observation["rel_pos"] = [self.diff]
+        observation["goal_dist"] = [np.linalg.norm(self.diff)]
 
         observation.pop("pos")
         return observation
@@ -657,13 +678,13 @@ class TaskReach4(Task):
 
     # NULL ACTION FOR THE ROBOT
     def PandaNullAct(self):
-        return np.zeros((7,))
+        return np.zeros((8,))
     
     def PandaNullActHand(self):
-        return np.zeros((7,))
+        return np.zeros((8,))
     
     def PandaNullActNoHand(self):
-        return np.zeros((6,))
+        return np.zeros((7,))
 
     # TRANSLATION FOR COMMUNICATION VIA rl_spin_decoupler 
     def PandaObservationToComm(self, timestep, momaenv):
@@ -848,10 +869,10 @@ class TaskReach5(Task):
         return observation
 
     def RLCommToObservationTestGUI(self,observation):
-        diff = self.goal_pos - observation["pos"]
+        self.diff = self.goal_pos - observation["pos"]
 
-        observation["rel_pos"] = [diff]
-        observation["goal_dist"] = [np.linalg.norm(diff)]
+        observation["rel_pos"] = [self.diff]
+        observation["goal_dist"] = [np.linalg.norm(self.diff)]
 
         observation.pop("pos")
         return observation
@@ -873,13 +894,13 @@ class TaskReach5(Task):
 
     # NULL ACTION FOR THE ROBOT
     def PandaNullAct(self):
-        return np.zeros((7,))
+        return np.zeros((8,))
     
     def PandaNullActHand(self):
-        return np.zeros((7,))
+        return np.zeros((8,))
     
     def PandaNullActNoHand(self):
-        return np.zeros((6,))
+        return np.zeros((7,))
 
     # TRANSLATION FOR COMMUNICATION VIA rl_spin_decoupler 
     def PandaObservationToComm(self, timestep, momaenv):
@@ -1071,10 +1092,10 @@ class TaskReach5_2(Task):
         return observation
 
     def RLCommToObservationTestGUI(self,observation):
-        diff = self.goal_pos - observation["pos"]
+        self.diff = self.goal_pos - observation["pos"]
 
-        observation["rel_pos"] = [diff]
-        observation["goal_dist"] = [np.linalg.norm(diff)]
+        observation["rel_pos"] = [self.diff]
+        observation["goal_dist"] = [np.linalg.norm(self.diff)]
 
         observation.pop("pos")
         return observation
@@ -1096,13 +1117,13 @@ class TaskReach5_2(Task):
 
     # NULL ACTION FOR THE ROBOT
     def PandaNullAct(self):
-        return np.zeros((7,))
+        return np.zeros((8,))
     
     def PandaNullActHand(self):
-        return np.zeros((7,))
+        return np.zeros((8,))
     
     def PandaNullActNoHand(self):
-        return np.zeros((6,))
+        return np.zeros((7,))
 
     # TRANSLATION FOR COMMUNICATION VIA rl_spin_decoupler 
     def PandaObservationToComm(self, timestep, momaenv):

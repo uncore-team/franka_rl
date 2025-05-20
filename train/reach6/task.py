@@ -596,7 +596,6 @@ class TaskReach6_3(Task):
 
     # METHODS CONCERNING REINFORCEMENT LEARNING
     def RLActionSpace(self):
-        # CARTESIAN VELOCITY CONTROL OF THE END EFFECTOR
         return gym.spaces.Box(low=-self.vmax, high=self.vmax, shape=(7,), dtype=float)
 
     def RLObservationSpace(self):

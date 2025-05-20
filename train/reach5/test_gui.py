@@ -3,7 +3,7 @@ from stable_baselines3 import SAC
 import threading
 import tkinter as tk
 
-from task import TaskReach5
+from task import TaskReach5, TaskReach5_2
 
 class Gui():
     def __init__(self):
@@ -39,7 +39,7 @@ class Gui():
 
 
 def main():
-    task = TaskReach5(mode=TaskReach5.TaskMode.TEST_GUI)
+    task = TaskReach5_2(mode=TaskReach5_2.TaskMode.TEST_GUI)
     #task.max_steps = 100000000
     task.goal_pos = window.goal_pos
     env = PandaEnv(task=task)

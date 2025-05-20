@@ -5,7 +5,7 @@ PORT = 49054 # 49054-65535 are free ports
 TASK = TaskReach6_3
 MODE = TASK.TaskMode.TEST_GUI # LEARN/TEST/TEST_GUI
 
-HAS_HAND = False
+HAS_HAND = True
 
 # TEST/TEST_GUI
 MODEL = "reach.zip" # Load an existing model

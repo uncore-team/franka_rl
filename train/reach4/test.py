@@ -6,7 +6,7 @@ from task import TaskReach4
 if __name__ == '__main__':
     task = TaskReach4(mode=TaskReach4.TaskMode.TEST)
     env = PandaEnv(task=task)
-    model = SAC.load("checkpoints/1/reach_38000_steps.zip")
+    model = SAC.load("reach.zip")
     #model = SAC.load("reach.zip")
 
     observation, info = env.reset(seed=42)

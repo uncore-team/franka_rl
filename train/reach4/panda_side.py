@@ -153,7 +153,7 @@ if __name__ == '__main__':
     #utils.full_spec(env)
 
     # Initialize the agent
-    task = TaskReach4(mode=TaskReach4.TaskMode.TEST_GUI) # CHOOSE MODE LEARN/TEST/TEST_GUI
+    task = TaskReach4(mode=TaskReach4.TaskMode.TEST) # CHOOSE MODE LEARN/TEST/TEST_GUI
     agent = Agent(env, task=task)
     
     # Run the environment and agent either in headless mode or inside the GUI.

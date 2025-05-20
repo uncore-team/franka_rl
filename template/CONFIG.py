@@ -2,13 +2,13 @@ from task import Task, TaskReach, TaskReach2, TaskReach4, TaskReach5, TaskReach5
 
 PORT = 49054 # 49054-65535 are free ports
 
-TASK = TaskReach6_3
+TASK = TaskReach5
 MODE = TASK.TaskMode.TEST_GUI # LEARN/TEST/TEST_GUI
 
-HAS_HAND = False
+HAS_HAND = True
 
 # TEST/TEST_GUI
-MODEL = "models/reach6.zip" # Load an existing model
+MODEL = "models/reach5.zip" # Load an existing model
 
 # LEARN
 LOG_PATH = "./logs/1" # "./logs/xxx"
