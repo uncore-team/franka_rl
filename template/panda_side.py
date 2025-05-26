@@ -53,7 +53,7 @@ class Agent():
 
     # Check that the timesteps are right 
     self._control_timestep = env.task.control_timestep
-    self._rltimestep = 0.1
+    self._rltimestep = RL_TIMESTEP
     if self._rltimestep <= self._control_timestep:
       raise(ValueError("RL timestep must be > control timestep"))
 
