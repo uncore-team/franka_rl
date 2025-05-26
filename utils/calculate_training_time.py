@@ -50,8 +50,8 @@ def plot_reward(csv: str, figname: str, percent: float):
 
 if __name__=="__main__":
     # CONFIGURATION
-    csv = "reach4/reach4.csv"
-    figname = "reach4/reward" # save the resulting figure with this name
+    csv = "reach6/reach6_nuevo.csv"
+    figname = "reach6/reward" # save the resulting figure with this name
     percent = 0.95 # [0,1]
     ####################################
     plot_reward(csv=csv, figname=figname, percent=percent)

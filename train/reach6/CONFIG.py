@@ -11,13 +11,13 @@ HAS_HAND = True
 MODEL = "reach.zip" # Load an existing model
 
 # LEARN
-LOG_PATH = "./logs/3" # "./logs/xxx"
-CHECKPOINTS_PATH = "./checkpoints/3" # "./checkpoints/xxx"
+LOG_PATH = "./logs/nuevo" # "./logs/xxx"
+CHECKPOINTS_PATH = "./checkpoints/nuevo" # "./checkpoints/xxx"
 SAVE_FREQ = 2000 # steps before saving a new checkpoint
 NAME_PREFIX = "reach" # name prefix for the checkpoints
 TOTAL_TIMESTEPS = 100000
 
-MODEL_NAME = "reach.zip" # Name for the final model
+MODEL_NAME = "reach6_nuevo.zip" # Name for the final model
 
 
 

@@ -451,13 +451,13 @@ class TaskReach2(Task): # Can't use it here yet
 
     # NULL ACTION FOR THE ROBOT
     def PandaNullAct(self):
-        return np.zeros((8,))
+        return np.zeros((7,))
     
     def PandaNullActHand(self):
-        return np.zeros((8,))
+        return np.zeros((7,))
     
     def PandaNullActNoHand(self):
-        return np.zeros((7,))
+        return np.zeros((6,))
 
     # TRANSLATION FOR COMMUNICATION VIA rl_spin_decoupler 
     def PandaObservationToComm(self, timestep, momaenv):
@@ -678,13 +678,13 @@ class TaskReach4(Task): # Can't use it here yet
 
     # NULL ACTION FOR THE ROBOT
     def PandaNullAct(self):
-        return np.zeros((8,))
+        return np.zeros((7,))
     
     def PandaNullActHand(self):
-        return np.zeros((8,))
+        return np.zeros((7,))
     
     def PandaNullActNoHand(self):
-        return np.zeros((7,))
+        return np.zeros((6,))
 
     # TRANSLATION FOR COMMUNICATION VIA rl_spin_decoupler 
     def PandaObservationToComm(self, timestep, momaenv):
@@ -894,13 +894,13 @@ class TaskReach5(Task):
 
     # NULL ACTION FOR THE ROBOT
     def PandaNullAct(self):
-        return np.zeros((8,))
+        return np.zeros((7,))
     
     def PandaNullActHand(self):
-        return np.zeros((8,))
+        return np.zeros((7,))
     
     def PandaNullActNoHand(self):
-        return np.zeros((7,))
+        return np.zeros((6,))
 
     # TRANSLATION FOR COMMUNICATION VIA rl_spin_decoupler 
     def PandaObservationToComm(self, timestep, momaenv):
@@ -1117,13 +1117,13 @@ class TaskReach5_2(Task):
 
     # NULL ACTION FOR THE ROBOT
     def PandaNullAct(self):
-        return np.zeros((8,))
+        return np.zeros((7,))
     
     def PandaNullActHand(self):
-        return np.zeros((8,))
+        return np.zeros((7,))
     
     def PandaNullActNoHand(self):
-        return np.zeros((7,))
+        return np.zeros((6,))
 
     # TRANSLATION FOR COMMUNICATION VIA rl_spin_decoupler 
     def PandaObservationToComm(self, timestep, momaenv):

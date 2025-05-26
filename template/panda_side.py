@@ -137,10 +137,10 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   # Environment
-  robot_params = params.RobotParams(robot_ip=args.robot_ip,has_hand=HAS_HAND, actuation=arm_constants.Actuation.JOINT_VELOCITY) # actuation=arm_constants.Actuation.JOINT_VELOCITY
+  robot_params = params.RobotParams(robot_ip=args.robot_ip,has_hand=HAS_HAND, actuation=CONTROLLER)
   panda_env = environment.PandaEnvironment(robot_params,
-                                           control_timestep=0.05,
-                                           physics_timestep=0.002)
+                                           control_timestep=CONTROL_TIMESTEP,
+                                           physics_timestep=PHYSICS_TIMESTEP)
 
   init_random(panda_env,robot_params.name)
 
