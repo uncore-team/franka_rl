@@ -1,7 +1,8 @@
+#!/home/diego/tfg_ws/franka_rl/.venv/bin/python
 import sys
 import os
 
-sys.path.append(os.path.abspath("../"))
+#sys.path.append(os.path.abspath("../../"))
 
 import numpy as np
 import dm_env
@@ -21,11 +22,11 @@ from dm_robotics.panda import parameters as params
 from dm_robotics.panda import run_loop, utils
 from dm_robotics.panda import arm_constants
 
-from rl_spin_decoupler.spindecoupler import AgentSide
-from rl_spin_decoupler.socketcomms.comms import BaseCommPoint
+from icra_code.rl_spin_decoupler.spindecoupler import AgentSide
+from icra_code.rl_spin_decoupler.socketcomms.comms import BaseCommPoint
 from enum import Enum
 
-from CONFIG import *
+from icra_code.CONFIG import *
 
 class Agent():
   """
@@ -121,8 +122,8 @@ class Agent():
 def init_random(panda_env,robotname):
   """Randomly initializes the scenario (after creation)"""
   gripper_pose_dist = pose_distribution.UniformPoseDistribution(
-    min_pose_bounds=np.array([0.5, -0.3, 0.7, np.pi - np.pi/3, - np.pi/3, - np.pi/3]),
-    max_pose_bounds=np.array([0.2, 0.3,  0.3, np.pi + np.pi/3, + np.pi/3, + np.pi/3]))
+    min_pose_bounds=np.array([0.5, 0.0, 0.4, np.pi, 0.0, 0.0]),
+    max_pose_bounds=np.array([0.5, 0.0,  0.4, np.pi, 0.0, 0.0]))
 
   initialize_arm = entity_initializer.PoseInitializer(
     panda_env.robots[robotname].position_gripper,

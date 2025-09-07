@@ -5,8 +5,8 @@ from task import Task, TaskReach, TaskReach2, TaskReach4, TaskReach5, TaskReach5
 PORT = 49054 # 49054-65535 are free ports
 
 # TASK
-TASK = TaskReach5
-MODE = TASK.TaskMode.LEARN # LEARN/TEST/TEST_GUI
+TASK = TaskReach4
+MODE = TASK.TaskMode.TEST_GUI # LEARN/TEST/TEST_GUI
 
 # ROBOT
 CONTROLLER = arm_constants.Actuation.CARTESIAN_VELOCITY # JOINT_VELOCITY, CARTESIAN_VELOCITY
@@ -18,7 +18,7 @@ PHYSICS_TIMESTEP = 0.002
 RL_TIMESTEP = 0.1
 
 # TEST/TEST_GUI
-MODEL = "models/reach5_1.zip" # Load an existing model
+MODEL = "reach4.zip" # Load an existing model
 
 # LEARN
 LOG_PATH = "./logs/1" # "./logs/xxx"
