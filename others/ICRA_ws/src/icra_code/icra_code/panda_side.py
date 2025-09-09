@@ -28,6 +28,29 @@ from enum import Enum
 
 from icra_code.CONFIG import *
 
+import rclpy
+from rclpy.node import Node
+
+from std_msgs.msg import Float32MultiArray
+
+
+class RealPublisher(Node):
+
+    def __init__(self):
+        super().__init__('real_publisher')
+        self.publisher_pos = self.create_publisher(Float32MultiArray, 'real_pos', 10)
+        self.publisher_vel = self.create_publisher(Float32MultiArray, 'real_vel', 10)
+
+    def publish(self, pos, vel):
+        msg_pos = Float32MultiArray()
+        msg_pos.data = pos
+        self.publisher_pos.publish(msg_pos)
+
+        msg_vel = Float32MultiArray()
+        msg_vel.data = list(vel)
+        self.publisher_vel.publish(msg_vel)
+
+
 class Agent():
   """
   Agent that controls the dm_robotics_panda robot manipulator.
@@ -42,7 +65,9 @@ class Agent():
     EXECUTINGLASTACTION = 1	# Executing the last action
     AFTERRESET = 2	# After a previous (immediate) reset
 
-  def __init__(self, env, task: Task) -> None:
+  def __init__(self, publisher, env, task: Task) -> None:
+    self.publisher = publisher # ROS2
+
     self.env = env
     self._spec = self.env.action_spec()
     self._random_state = np.random.RandomState(42)
@@ -68,6 +93,17 @@ class Agent():
     """
     Function called repeatedly in dm_robotics_panda simulation loop
     """
+
+    # #print(timestep)
+    real_pos = timestep.observation["panda_tcp_pose"][0:3].tolist()
+    # print("POS" + timestep.observation["panda_tcp_pose"][0:3])
+    # print(type(real_pos))
+    # print(type(real_pos[0]))
+    real_vel = timestep.observation["panda_tcp_vel_world"][0:3].tolist()
+    # print("VEL" + timestep.observation["panda_tcp_vel_world"][0:3])
+
+    self.publisher.publish(real_pos, real_vel)
+
     action = self._lastaction
     curtime = self.env.physics.data.time 
 
@@ -131,7 +167,12 @@ def init_random(panda_env,robotname):
 
   panda_env.add_entity_initializers([initialize_arm])
 
-if __name__ == '__main__':
+
+def main(args=None):
+  rclpy.init(args=args)
+
+  publisher = RealPublisher()
+
   # Initialize
   utils.init_logging()
   parser = utils.default_arg_parser()
@@ -151,7 +192,7 @@ if __name__ == '__main__':
 
     # Initialize the agent
     task = TASK(mode=MODE, has_hand=HAS_HAND)
-    agent = Agent(env, task=task)
+    agent = Agent(publisher, env, task=task)
     
     # Run the environment and agent either in headless mode or inside the GUI.
     if args.gui:
@@ -159,3 +200,11 @@ if __name__ == '__main__':
       app.launch(env, policy=agent.step)
     else:
       run_loop.run(env, agent, [], max_steps=100000000, real_time=False)
+
+  publisher.destroy_node()
+    
+  rclpy.shutdown()
+
+
+if __name__ == '__main__':
+  main()

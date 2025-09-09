@@ -5,4 +5,9 @@ ja
 learn
 examples
 obsoleto
+<<<<<<< Updated upstream
 checkpoints
+=======
+checkpoints
+others/ICRA_ws/bag_files
+>>>>>>> Stashed changes

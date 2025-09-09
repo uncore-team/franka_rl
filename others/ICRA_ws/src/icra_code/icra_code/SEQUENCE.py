@@ -19,11 +19,10 @@ from std_msgs.msg import Float32MultiArray
 
 class GoalPublisher(Node):
 
-    def __init__(self, shared_goal_pos):
+    def __init__(self):
         super().__init__('goal_publisher')
         self.publisher_pos = self.create_publisher(Float32MultiArray, 'goal_pos', 10)
         self.publisher_vel = self.create_publisher(Float32MultiArray, 'goal_vel', 10)
-        self.shared_goal_pos = shared_goal_pos
 
     def publish(self, pos, vel):
         msg_pos = Float32MultiArray()
@@ -130,7 +129,7 @@ def main2(shared_goal_pos, args=None):
     # ROS2 SETUP
     rclpy.init(args=args)
 
-    publisher = GoalPublisher(shared_goal_pos)
+    publisher = GoalPublisher()
 
     observation, info = env.reset(seed=42)
     for _ in range(100000):
@@ -139,9 +138,9 @@ def main2(shared_goal_pos, args=None):
 
         # RL agent action prediction
         action, _state = model.predict(observation, deterministic=True)
-        print(action.tolist())
+        #print(action.tolist())
         #print(action.tolist().shape)
-        print(type(action.tolist()))
+        #print(type(action.tolist()))
 
         # ROS2
         publisher.publish(task.goal_pos, action.tolist()[0])
