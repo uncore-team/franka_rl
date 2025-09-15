@@ -14,22 +14,22 @@ from icra_code.CONFIG import *
 import rclpy
 from rclpy.node import Node
 
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float64MultiArray
 
 
 class GoalPublisher(Node):
 
     def __init__(self):
         super().__init__('goal_publisher')
-        self.publisher_pos = self.create_publisher(Float32MultiArray, 'goal_pos', 10)
-        self.publisher_vel = self.create_publisher(Float32MultiArray, 'goal_vel', 10)
+        self.publisher_pos = self.create_publisher(Float64MultiArray, 'goal_pos', 10)
+        self.publisher_vel = self.create_publisher(Float64MultiArray, 'goal_vel', 10)
 
     def publish(self, pos, vel):
-        msg_pos = Float32MultiArray()
+        msg_pos = Float64MultiArray()
         msg_pos.data = pos
         self.publisher_pos.publish(msg_pos)
 
-        msg_vel = Float32MultiArray()
+        msg_vel = Float64MultiArray()
         msg_vel.data = list(vel)
         self.publisher_vel.publish(msg_vel)
 
@@ -100,7 +100,7 @@ def main():
     T = 5.0 # Ajustar el tiempo al minimo para evitar el tiempo estacionario
     L = 0.15
     sequence = Sequence()
-    sequence.add_point(Point(X, L,   Z+L, 4*T)) # 1
+    sequence.add_point(Point(X, L,   Z+L, 6*T)) # 1
     sequence.add_point(Point(X, L,   Z-L, T)) # 2
     sequence.add_point(Point(X, -L,  Z-L, T)) # 3
     sequence.add_point(Point(X, -L,  Z+L, T)) # 4

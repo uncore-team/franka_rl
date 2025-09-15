@@ -31,24 +31,30 @@ from icra_code.CONFIG import *
 import rclpy
 from rclpy.node import Node
 
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float64, Float64MultiArray
 
 
 class RealPublisher(Node):
 
-    def __init__(self):
-        super().__init__('real_publisher')
-        self.publisher_pos = self.create_publisher(Float32MultiArray, 'real_pos', 10)
-        self.publisher_vel = self.create_publisher(Float32MultiArray, 'real_vel', 10)
+  def __init__(self):
+    super().__init__('real_publisher')
+    self.publisher_pos = self.create_publisher(Float64MultiArray, 'real_pos', 10)
+    self.publisher_vel = self.create_publisher(Float64MultiArray, 'real_vel', 10)
+    self.publisher_lat = self.create_publisher(Float64, 'lat', 10)
 
-    def publish(self, pos, vel):
-        msg_pos = Float32MultiArray()
-        msg_pos.data = pos
-        self.publisher_pos.publish(msg_pos)
+  def publish(self, pos, vel):
+    msg_pos = Float64MultiArray()
+    msg_pos.data = pos
+    self.publisher_pos.publish(msg_pos)
 
-        msg_vel = Float32MultiArray()
-        msg_vel.data = list(vel)
-        self.publisher_vel.publish(msg_vel)
+    msg_vel = Float64MultiArray()
+    msg_vel.data = list(vel)
+    self.publisher_vel.publish(msg_vel)
+
+  def publish_lat(self, lat):
+    msg_lat = Float64()
+    msg_lat.data = lat
+    self.publisher_lat.publish(msg_lat)
 
 
 class Agent():
@@ -123,6 +129,11 @@ class Agent():
           action = self.task.PandaCommToAction(actrec)
 
           lat = curtime - self._lastactiont0
+          print(curtime)
+          print(self._lastactiont0)
+          print(lat)
+          print("-----")
+          self.publisher.publish_lat(lat)
           self._lastactiont0 = curtime
           self._commstoRL.stepSendLastActDur(lat)
           self._stepstate = Agent.StepState.EXECUTINGLASTACTION 
